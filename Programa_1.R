@@ -80,12 +80,19 @@ kpss.test(Datos_ent_xts_slx[,1]) # H0: serie estacionaria
 pp.test(Datos_ent_xts_slx[,1])   # H0: serie no estacionaria
 
 
+# Correlaciones dinámicas ----
+#------------------------------------------------------------------------------#
+
+test <- forecast::Ccf(x = Datos_ent$Brent ,y = Datos_ent$TRM
+                      ,lag.max = 18,plot = T,type = "correlation")
+test
+
 
 # Identificación ----
 #------------------------------------------------------------------------------#
 
 ## retornos log. mensuales
-VARselect(Datos_ent_xts_dlx,lag.max = 6,type = "const")
+VARselect(Datos_ent_xts_dlx,lag.max = 6,type = "both")
 
 ## retornos log. anuales
 VARselect(Datos_ent_xts_slx,lag.max = 6,type = "const")
@@ -153,7 +160,7 @@ plot(stability(mod2, type = "fluctuation"))
 # ningun p-value de cada rezago debe estar por debajo de la linea roja
 #------------------------------------------------------------------------------#
 
-resi <- residuals(mod1)
+resi <- residuals(mod2)
 i=1
 k=1
 
@@ -190,10 +197,10 @@ windows()
 plot(pronos_mod2)
 
 windows()
-fanchart(pronos_mod2, names= "TRM" )
+fanchart(pronos_mod2)
 
 
-## Causalidad Granger ----
+## Causalidad Granger ---- "Si una variable aporta sobre el pronóstico de mi variable de interés"
 granger_mod1 <- causality(mod1,cause = "DXY")
 granger_mod1
 
