@@ -75,7 +75,7 @@ Datos_exo_xts_slx <- Datos_exo_xts %>% log() %>% diff(.,lag=12, differences = 1 
 # Gráficos ----
 #------------------------------------------------------------------------------#
 ts_plot(Datos_ent_xts_slx
-        ,type = "multiple"
+        ,type = "single"
         ,slider = F)
 
 
@@ -114,7 +114,7 @@ VARselect(Datos_ent_xts_slx,lag.max = 10,type = "const")
 # Estimación ----
 #------------------------------------------------------------------------------#
 
-mod1 <- VAR(y = Datos_ent_xts_dlx, p = 1, type = "none")
+mod1 <- VAR(y = Datos_ent_xts_dlx, p = 1, type = "both")
 summary(mod1)
 
 summary(mod1, equation = "TRM")
@@ -131,6 +131,9 @@ plot(mod2, names = "TRM")
 
 # Diagnostico ----
 #------------------------------------------------------------------------------#
+
+roots(mod1) # los valores propios deben ser inferiores a la unidad para que el
+            # sistema VAR estimado sea estable
 
 ## correlación serial ----
 serial_mod1 <- serial.test(mod1,lags.pt = 16, type = "PT.asymptotic")
@@ -162,6 +165,10 @@ plot(stability(mod1, type = "fluctuation"))
 
 windows()
 plot(stability(mod2, type = "fluctuation"))
+
+windows()
+plot(stability(mod2, type = "OLS-CUSUM"))
+
 
 
 #------------------------------------------------------------------------------#
@@ -236,7 +243,7 @@ windows()
 plot(irf_mod1)
 
 irf_mod2 <- irf(mod2,impulse = c("TRM","Brent","DXY","EMBI")
-                ,response = "TRM", cumulative = F,ortho=F
+                ,response = "TRM", cumulative = F,ortho=T
                 ,boot=T,ci=0.95,n.ahead = 24)
 windows()
 plot(irf_mod2)
@@ -248,7 +255,7 @@ plot(irf_mod2)
 fevd_mod1 <- vars::fevd(mod1, n.ahead = 12)
 
 windows()
-plot(fevd_mod1,names="TRM")
+plot(fevd_mod1)
 
 fevd_mod2 <- vars::fevd(mod2, n.ahead = 18)
 
