@@ -1,7 +1,6 @@
 # ------------------------------------------------------------------------------#
 # Introducción a modelos multivariados ----
-## Vectores
-## estructura GARCH para la volatilidad
+## Vectores autoregresivos VAR(p)
 ## Arturo Yesid Gonzalez ----
 # ------------------------------------------------------------------------------#
 
@@ -21,9 +20,13 @@ salidas <- "Datos_sal/"
 # ------------------------------------------------------------------------------#
 # Lectura datos ----
 Datos_ent  <- read_xlsx(glue("{entradas}Base.xlsx")
-                        ,sheet = "Base",range = "a3:d214")
-Datos_ent_xts <- xts(Datos_ent[,-1],order.by = as.Date(Datos_ent$fecha))
+                        ,sheet = "Base",range = "a3:e321")
 
+Datos_exo  <- read_xlsx(glue("{entradas}Base.xlsx")
+                        ,sheet = "Exogenas",range = "a3:c435")
+
+Datos_ent_xts <- xts(Datos_ent[,-1],order.by = as.Date(Datos_ent$fecha))
+Datos_exo_xts <- xts(Datos_ent[,-1],order.by = as.Date(Datos_ent$fecha))
 
 # Gráficos ----
 #------------------------------------------------------------------------------#
@@ -48,16 +51,25 @@ adf.test(Datos_ent_xts[,3])
 kpss.test(Datos_ent_xts[,3]) # H0: serie estacionaria
 pp.test(Datos_ent_xts[,3])   # H0: serie no estacionaria
 
+## EMBI
+adf.test(Datos_ent_xts[,4])
+kpss.test(Datos_ent_xts[,4]) # H0: serie estacionaria
+pp.test(Datos_ent_xts[,4])   # H0: serie no estacionaria
+
 
 # diff aplicar ----
 ndiffs(Datos_ent_xts[,1])
 ndiffs(Datos_ent_xts[,2])
 ndiffs(Datos_ent_xts[,3])
+ndiffs(Datos_ent_xts[,4])
 
 
 # Calculo retornos log. ----
 Datos_ent_xts_dlx <- Datos_ent_xts %>% log() %>% diff(.,lag=1, differences = 1 ) %>% na.omit()
 Datos_ent_xts_slx <- Datos_ent_xts %>% log() %>% diff(.,lag=12, differences = 1 ) %>% na.omit()
+
+Datos_exo_xts_dlx <- Datos_exo_xts %>% log() %>% diff(.,lag=1, differences = 1 ) %>% na.omit()
+Datos_exo_xts_slx <- Datos_exo_xts %>% log() %>% diff(.,lag=12, differences = 1 ) %>% na.omit()
 
 
 # Gráficos ----
@@ -80,29 +92,36 @@ kpss.test(Datos_ent_xts_slx[,1]) # H0: serie estacionaria
 pp.test(Datos_ent_xts_slx[,1])   # H0: serie no estacionaria
 
 
+# Correlaciones dinámicas ----
+#------------------------------------------------------------------------------#
+
+test <- ccf(x = as.numeric(Datos_ent_xts_slx$EMBI) ,y = as.numeric(Datos_ent_xts_slx$TRM)
+                      ,lag.max = 18,plot = T,type = "correlation")
+
+
 
 # Identificación ----
 #------------------------------------------------------------------------------#
 
 ## retornos log. mensuales
-VARselect(Datos_ent_xts_dlx,lag.max = 6,type = "const")
+VARselect(Datos_ent_xts_dlx,lag.max = 10,type = "both")
 
 ## retornos log. anuales
-VARselect(Datos_ent_xts_slx,lag.max = 6,type = "const")
+VARselect(Datos_ent_xts_slx,lag.max = 10,type = "const")
 
 
 
 # Estimación ----
 #------------------------------------------------------------------------------#
 
-mod1 <- VAR(y = Datos_ent_xts_dlx, p = 2, type = "const")
+mod1 <- VAR(y = Datos_ent_xts_dlx, p = 1, type = "none")
 summary(mod1)
 
 summary(mod1, equation = "TRM")
 windows()
 plot(mod1, names = "TRM")
 
-mod2 <- VAR(y = Datos_ent_xts_slx, lag.max = 4, type = "const", ic = "AIC")
+mod2 <- VAR(y = Datos_ent_xts_slx, lag.max = 3, type = "both", ic = "AIC")
 summary(mod2)
 
 summary(mod2, equation = "TRM")
@@ -152,8 +171,9 @@ plot(stability(mod2, type = "fluctuation"))
 # Prueba de Ljung Box sobre cada residual de las ecuaciones del modelo
 # ningun p-value de cada rezago debe estar por debajo de la linea roja
 #------------------------------------------------------------------------------#
+names(Datos_ent_xts_slx)
 
-resi <- residuals(mod1)
+resi <- residuals(mod2)
 i=1
 k=1
 
@@ -169,7 +189,8 @@ for(k in 1:ncol(resi)){
   cat("Prueba Ljung_Box \n \n")
   Ljung_Box
   windows()
-  plot(Ljung_Box, main=paste("Prueba Ljung_Box \n H0: residuales ecuación ",k," son iid",sep=""))
+  plot(Ljung_Box, main=paste("Prueba Ljung_Box \n H0: residuales ecuación "
+                             ,names(Datos_ent_xts_slx)[k]," son iid",sep=""))
   abline(h=0.05,col="red")
 }
 
@@ -187,13 +208,13 @@ fanchart(pronos_mod1)
 
 pronos_mod2 <- predict(mod2, n.ahead = 15, ci=0.95)
 windows()
-plot(pronos_mod2)
+plot(pronos_mod2,names="TRM")
 
 windows()
-fanchart(pronos_mod2, names= "TRM" )
+fanchart(pronos_mod2,names="TRM")
 
 
-## Causalidad Granger ----
+## Causalidad Granger ---- "Si una variable aporta sobre el pronóstico de mi variable de interés"
 granger_mod1 <- causality(mod1,cause = "DXY")
 granger_mod1
 
@@ -208,13 +229,13 @@ granger_mod2
 
 
 ## Impulso respuesta IRF ----
-irf_mod1 <- irf(mod1,impulse = c("Brent","DXY")
-                ,response = "TRM", cumulative = F,ortho=F
-                ,boot=T,ci=0.95,n.ahead = 24)
+irf_mod1 <- irf(mod1,impulse = c("TRM","Brent","DXY","EMBI")
+                ,response = "TRM", cumulative = T,
+                ,n.ahead = 24)
 windows()
 plot(irf_mod1)
 
-irf_mod2 <- irf(mod2,impulse = c("Brent","DXY")
+irf_mod2 <- irf(mod2,impulse = c("TRM","Brent","DXY","EMBI")
                 ,response = "TRM", cumulative = F,ortho=F
                 ,boot=T,ci=0.95,n.ahead = 24)
 windows()
@@ -227,42 +248,16 @@ plot(irf_mod2)
 fevd_mod1 <- vars::fevd(mod1, n.ahead = 12)
 
 windows()
-plot(fevd_mod1)
+plot(fevd_mod1,names="TRM")
 
-fevd_mod2 <- vars::fevd(mod2, n.ahead = 12)
+fevd_mod2 <- vars::fevd(mod2, n.ahead = 18)
 
 windows()
-plot(fevd_mod2)
+plot(fevd_mod2,names="TRM")
 
 
 #------------------------------------------------------------------------------#
 #------------------------------------------------------------------------------#
-# Prueba de cointegración ----
 
-summary(ca.jo(log(Datos_ent_xts),type = c("trace"),ecdet = c("const")))
-summary(ur.kpss(log(Datos_ent_xts),type = "tau",use.lag = 4))
-
-summary(ur.kpss(Datos_ent_xts$TRM,type = "tau",use.lag = 8))
-summary(ur.sp(Datos_ent_xts$TRM,type = "tau",pol.deg = 2))
-summary(ur.ers(Datos_ent_xts$TRM,type="DF-GLS"))
-summary(ur.pp(Datos_ent_xts$TRM,type="Z-tau",model = "constant",lags = "long"))
-
-SB_TRM <- ur.za(log(Datos_ent_xts$TRM), model = "both", lag = 4)
-windows()
-plot(SB_TRM)
-
-summary(SB_TRM@testreg)
-
-SB_TRM <- ur.za(Datos_ent_xts_slx$DXY, model = "both", lag = 4)
-SB_TRM@bpoint
-
-windows()
-plot(SB_TRM)
-
-summary(SB_TRM@testreg)
-
-
-RLP_test1 <- summary(ca.po(Datos_ent_xts, demean = "const", type = "Pz"))
-RLP_test2 <- summary(ca.po(Datos_ent_xts, demean = "const", type = "Pu"))
 
 

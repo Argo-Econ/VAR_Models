@@ -1,9 +1,9 @@
 {
     "id": "CCC1C4D2",
-    "path": "C:/Users/arygonza/OneDrive - Grupo Bancolombia/Bancolombia_ARGO/Bancolombia_Argo_2023/Personales/Econometria_Uext/VAR_Models/Programa_1.R",
+    "path": "C:/Users/arygonza/OneDrive - Grupo Bancolombia/Bancolombia_ARGO/Bancolombia_Argo2024/Personales/Econometria_Uext/VAR_Models/Programa_1.R",
     "project_path": "Programa_1.R",
     "type": "r_source",
-    "hash": "3377882018",
+    "hash": "3921788982",
     "contents": "",
     "dirty": false,
     "created": 1689123071249.0,
@@ -13,16 +13,16 @@
         "tempName": "Untitled1",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "237,80",
-        "scrollLine": "222",
+        "cursorPosition": "2,33",
+        "scrollLine": "0",
         "docOutlineVisible": "1"
     },
     "folds": "",
-    "lastKnownWriteTime": 1689135076,
+    "lastKnownWriteTime": 1720746300,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1689135076981,
+    "last_content_update": 1720746300428,
     "read_only": false,
     "read_only_alternatives": []
 }
