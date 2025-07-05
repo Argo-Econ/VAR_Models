@@ -20,7 +20,7 @@ salidas <- "Datos_sal/"
 # ------------------------------------------------------------------------------#
 # Lectura datos ----
 Datos_ent  <- read_xlsx(glue("{entradas}Base.xlsx")
-                        ,sheet = "Base",range = "a3:e321")
+                        ,sheet = "Base",range = "a3:f325")
 
 Datos_exo  <- read_xlsx(glue("{entradas}Base.xlsx")
                         ,sheet = "Exogenas",range = "a3:c435")
@@ -121,6 +121,11 @@ summary(mod1, equation = "TRM")
 windows()
 plot(mod1, names = "TRM")
 
+Datos_ent_xts_lx = Datos_ent[,-1] |> log() |> xts(order.by = as.Date(Datos_ent$fecha))
+VARselect(Datos_ent_xts_lx,lag.max = 10, type = "trend")
+mod1a <- VAR(Datos_ent_xts_lx, p = 2,type = "trend")
+summary(mod1a)
+
 mod2 <- VAR(y = Datos_ent_xts_slx, lag.max = 3, type = "both", ic = "AIC")
 summary(mod2)
 
@@ -135,7 +140,7 @@ plot(mod2, names = "TRM")
 roots(mod1) # los valores propios deben ser inferiores a la unidad para que el
             # sistema VAR estimado sea estable
 
-## correlación serial ----
+## Correlación serial ----
 serial_mod1 <- serial.test(mod1,lags.pt = 16, type = "PT.asymptotic")
 
 windows()
